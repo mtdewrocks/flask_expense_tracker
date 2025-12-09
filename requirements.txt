@@ -1,0 +1,9 @@
+Flask
+Flask-Login
+SQLAlchemy
+Werkzeug
+pandas
+dash
+plotly
+gunicorn
+python-dotenv

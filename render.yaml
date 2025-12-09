@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: expense-tracker
+    env: python
+    plan: free
+
+    buildCommand: "pip install -r requirements.txt"
+    startCommand: "gunicorn app:app"
+
+    envVars:
+      - key: SECRET_KEY
+        sync: false   # You will set this manually in Render's dashboard
+
+    disk:
+      name: data
+      mountPath: /var/data
+      sizeGB: 1
