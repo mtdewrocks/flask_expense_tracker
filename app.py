@@ -758,6 +758,33 @@ def delete_expense(expense_id):
 
     return redirect(url_for("index"))
 
+
+@app.route("/admin/create_user", methods=["GET", "POST"])
+@login_required
+def admin_create_user():
+    if not current_user.is_admin:
+        return "Unauthorized", 403
+
+    session = SessionLocal()
+    message = None
+
+    if request.method == "POST":
+        username = request.form.get("username", "").strip()
+        password = request.form.get("password", "").strip()
+
+        existing = session.query(User).filter(User.username == username).first()
+        if existing:
+            message = "User already exists."
+        else:
+            new_user = User(username=username, is_admin=0)
+            new_user.set_password(password)
+            session.add(new_user)
+            session.commit()
+            message = "User created successfully."
+
+    session.close()
+
+    return render_template_string(ADMIN_CREATE_USER_TEMPLATE, message=message)
 # ============================================================
 #  BUDGET PAGE ROUTE
 # ============================================================
