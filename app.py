@@ -24,6 +24,7 @@ import plotly.express as px
 # ============================================================
 #  CONFIG
 # ============================================================
+os.makedirs("/var/data", exist_ok=True)
 
 # Use a different DB path on Render so it can live on the mounted disk
 DB_PATH = "/var/data/expenses.db" if os.environ.get("RENDER") else "expenses.db"
