@@ -27,7 +27,7 @@ import plotly.express as px
 
 
 # Use a different DB path on Render so it can live on the mounted disk
-DB_PATH = "/var/data/expenses.db" if os.environ.get("RENDER") else "expenses.db"
+DB_PATH = "/var/data/expenses.db"
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "dev-secret")
