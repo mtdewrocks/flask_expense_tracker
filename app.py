@@ -92,11 +92,16 @@ class Debt(Base):
     name = Column(String(100), nullable=False)
     original_balance = Column(Float, nullable=False)
     current_balance = Column(Float, nullable=False)
-    interest_rate = Column(Float, nullable=False)  # APR as percent (e.g., 18.5)
-
+    interest_rate = Column(Float, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
 
     user = relationship("User", back_populates="debts")
+
+    @property
+    def weighted_apr(self):
+        if not self.original_balance:
+            return 0
+        return self.interest_rate * (self.current_balance / self.original_balance)
 
 class Allocation(Base):
     __tablename__ = "allocations"
@@ -1153,12 +1158,6 @@ def create_initial_admin():
     return "Admin 'shawn' created. Change the password immediately."
 
 
-###Unsure where to go
-#@property
-#def weighted_apr(self):
-#    if self.original_balance == 0:
-#        return 0
-#    return self.interest_rate * (self.current_balance / self.original_balance)
 # ============================================================
 #  RUN APP
 # ============================================================
