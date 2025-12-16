@@ -48,6 +48,8 @@ class User(Base, UserMixin):
 
     expenses = relationship("Expense", back_populates="user")
     budgets = relationship("Budget", back_populates="user")
+    debts = relationship("Debt", back_populates="user")
+    allocations = relationship("Allocation", back_populates="user")
 
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
@@ -81,6 +83,31 @@ class Budget(Base):
     user = relationship("User", back_populates="budgets")
 
 
+class Debt(Base):
+    __tablename__ = "debts"
+
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+
+    name = Column(String(100), nullable=False)
+    original_balance = Column(Float, nullable=False)
+    current_balance = Column(Float, nullable=False)
+    interest_rate = Column(Float, nullable=False)  # APR as percent (e.g., 18.5)
+
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    user = relationship("User", back_populates="debts")
+
+class Allocation(Base):
+    __tablename__ = "allocations"
+
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    category = Column(String(50), nullable=False)
+    amount = Column(Float, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    user = relationship("User", back_populates="allocations")
 # ============================================================
 #  DATABASE SETUP
 # ============================================================
@@ -469,6 +496,142 @@ BUDGET_TEMPLATE = """
 </html>
 """
 
+
+DEBT_TEMPLATE = """
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Debt Tracker</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+body { font-family: system-ui; background:#f5f5f5; margin:0; padding:0; }
+.container { max-width:800px; margin:auto; padding:16px; }
+table { width:100%; border-collapse:collapse; background:#fff; }
+th, td { padding:8px; border-bottom:1px solid #eee; }
+th { background:#f0f0f0; }
+form { background:#fff; padding:16px; border-radius:8px; margin-bottom:16px; }
+input { width:100%; padding:8px; margin-bottom:8px; }
+button { padding:10px; background:#007bff; color:white; border:none; border-radius:4px; cursor:pointer; }
+</style>
+</head>
+<body>
+<div class="container">
+
+<h1>Debt Tracker</h1>
+
+<form method="post">
+<input name="name" placeholder="Debt Name" required>
+<input name="original_balance" type="number" step="0.01" placeholder="Original Balance" required>
+<input name="current_balance" type="number" step="0.01" placeholder="Current Balance" required>
+<input name="interest_rate" type="number" step="0.01" placeholder="Interest Rate (%)" required>
+<button type="submit">Add Debt</button>
+</form>
+
+<table>
+<thead>
+<tr>
+<th>Name</th>
+<th>Original</th>
+<th>Current</th>
+<th>APR</th>
+<th>Weighted APR</th>
+</tr>
+</thead>
+<tbody>
+{% for d in debts %}
+<tr>
+<td>{{ d.name }}</td>
+<td>${{ "%.2f"|format(d.original_balance) }}</td>
+<td>${{ "%.2f"|format(d.current_balance) }}</td>
+<td>{{ "%.2f"|format(d.interest_rate) }}%</td>
+<td>{{ "%.2f"|format(d.weighted_apr) }}%</td>
+</tr>
+{% endfor %}
+</tbody>
+</table>
+
+</div>
+</body>
+</html>
+"""
+
+ALLOCATE_TEMPLATE = """
+<!doctype html>
+<html>
+<head>
+<title>Allocate Paycheck</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+body { font-family: system-ui; background:#f5f5f5; }
+.container { max-width:700px; margin:auto; padding:16px; }
+table { width:100%; border-collapse:collapse; background:#fff; }
+th, td { padding:8px; border-bottom:1px solid #eee; }
+th { background:#f0f0f0; }
+input { width:100%; padding:8px; }
+button { margin-top:16px; width:100%; padding:10px; background:#28a745; color:white; border:none; border-radius:4px; }
+</style>
+</head>
+<body>
+<div class="container">
+
+<h1>Allocate Paycheck</h1>
+
+<form method="post">
+<table>
+<thead><tr><th>Category</th><th>Amount</th></tr></thead>
+<tbody>
+{% for cat in categories %}
+<tr>
+<td>{{ cat }}</td>
+<td><input type="number" step="0.01" name="alloc_{{ cat }}"></td>
+</tr>
+{% endfor %}
+</tbody>
+</table>
+<button type="submit">Save Allocation</button>
+</form>
+
+</div>
+</body>
+</html>
+"""
+
+BALANCES_TEMPLATE = """
+<!doctype html>
+<html>
+<head>
+<title>Category Balances</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+body { font-family: system-ui; background:#f5f5f5; }
+.container { max-width:700px; margin:auto; padding:16px; }
+table { width:100%; border-collapse:collapse; background:#fff; }
+th, td { padding:8px; border-bottom:1px solid #eee; }
+th { background:#f0f0f0; }
+</style>
+</head>
+<body>
+<div class="container">
+
+<h1>Category Balances</h1>
+
+<table>
+<thead><tr><th>Category</th><th>Balance</th></tr></thead>
+<tbody>
+{% for cat, bal in balances.items() %}
+<tr>
+<td>{{ cat }}</td>
+<td>${{ "%.2f"|format(bal) }}</td>
+</tr>
+{% endfor %}
+</tbody>
+</table>
+
+</div>
+</body>
+</html>
+"""
 # ============================================================
 #  DASH APP INITIALIZATION
 # ============================================================
@@ -491,7 +654,9 @@ dash_app.layout = html.Div(
         html.H3("Spending by Category"),
         dcc.Graph(id="category-chart"),
         html.H3("Budget vs Actual"),
-        dcc.Graph(id="budget-chart")
+        dcc.Graph(id="budget-chart"),
+        html.H3("Debt Progress"),
+        dcc.Graph(id="debt-chart")
     ]
 )
 
@@ -604,7 +769,32 @@ def update_budget_chart(month):
         )
     finally:
         session.close()
+    
+@dash_app.callback(
+    Output("debt-chart", "figure"),
+    Input("month-dropdown", "id")
+)
+def update_debt_chart(_):
+    session = SessionLocal()
+    debts = session.query(Debt).filter(Debt.user_id == current_user.id).all()
+    session.close()
 
+    if not debts:
+        return px.bar(title="No debts yet")
+
+    df = pd.DataFrame([{
+        "name": d.name,
+        "paid": d.original_balance - d.current_balance,
+        "outstanding": d.current_balance
+    } for d in debts])
+
+    return px.bar(
+        df,
+        x="name",
+        y=["paid", "outstanding"],
+        barmode="stack",
+        title="Debt Paid vs Outstanding"
+    )
 # ============================================================
 #  FLASK ROUTES
 # ============================================================
@@ -785,6 +975,59 @@ def admin_create_user():
     session.close()
 
     return render_template_string(ADMIN_CREATE_USER_TEMPLATE, message=message)
+
+
+@app.route("/debts", methods=["GET", "POST"])
+@login_required
+def manage_debts():
+    session = SessionLocal()
+
+    if request.method == "POST":
+        name = request.form.get("name")
+        original = float(request.form.get("original_balance"))
+        current = float(request.form.get("current_balance"))
+        rate = float(request.form.get("interest_rate"))
+
+        debt = Debt(
+            user_id=current_user.id,
+            name=name,
+            original_balance=original,
+            current_balance=current,
+            interest_rate=rate
+        )
+        session.add(debt)
+        session.commit()
+
+    debts = session.query(Debt).filter(Debt.user_id == current_user.id).all()
+    session.close()
+
+    return render_template_string(DEBT_TEMPLATE, debts=debts)
+
+@app.route("/allocate", methods=["GET", "POST"])
+@login_required
+def allocate_paycheck():
+    session = SessionLocal()
+
+    if request.method == "POST":
+        for cat in DEFAULT_CATEGORIES:
+            raw = request.form.get(f"alloc_{cat}", "").strip()
+            if not raw:
+                continue
+
+            amount = float(raw)
+
+            alloc = Allocation(
+                user_id=current_user.id,
+                category=cat,
+                amount=amount
+            )
+            session.add(alloc)
+
+        session.commit()
+
+    session.close()
+
+    return render_template_string(ALLOCATE_TEMPLATE, categories=DEFAULT_CATEGORIES)
 # ============================================================
 #  BUDGET PAGE ROUTE
 # ============================================================
@@ -851,6 +1094,39 @@ def manage_budgets():
         budget_map=budget_map
     )
 
+@app.route("/balances")
+@login_required
+def view_balances():
+    session = SessionLocal()
+
+    # Total allocated per category
+    allocs = (
+        session.query(Allocation.category, func.sum(Allocation.amount))
+        .filter(Allocation.user_id == current_user.id)
+        .group_by(Allocation.category)
+        .all()
+    )
+    alloc_map = {cat: amt for cat, amt in allocs}
+
+    # Total spent per category
+    spent = (
+        session.query(Expense.category, func.sum(Expense.amount))
+        .filter(Expense.user_id == current_user.id)
+        .group_by(Expense.category)
+        .all()
+    )
+    spent_map = {cat: amt for cat, amt in spent}
+
+    # Compute balances
+    balances = {}
+    for cat in DEFAULT_CATEGORIES:
+        a = alloc_map.get(cat, 0)
+        s = spent_map.get(cat, 0)
+        balances[cat] = a - s
+
+    session.close()
+
+    return render_template_string(BALANCES_TEMPLATE, balances=balances)
 # ============================================================
 #  ADMIN: CREATE INITIAL ADMIN USER
 # ============================================================
@@ -872,6 +1148,13 @@ def create_initial_admin():
 
     return "Admin 'shawn' created. Change the password immediately."
 
+
+###Unsure where to go
+#@property
+#def weighted_apr(self):
+#    if self.original_balance == 0:
+#        return 0
+#    return self.interest_rate * (self.current_balance / self.original_balance)
 # ============================================================
 #  RUN APP
 # ============================================================
