@@ -16,6 +16,7 @@ from sqlalchemy import (
     Float, DateTime, ForeignKey
 )
 from sqlalchemy.orm import sessionmaker, declarative_base, relationship
+from sqlalchemy import func
 
 import pandas as pd
 from dash import Dash, dcc, html, Input, Output
