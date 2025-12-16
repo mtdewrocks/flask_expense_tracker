@@ -948,6 +948,10 @@ def delete_expense(expense_id):
 
     return redirect(url_for("index"))
 
+@app.route("/migrate")
+def migrate():
+    Base.metadata.create_all(engine)
+    return "Migration complete"
 
 @app.route("/admin/create_user", methods=["GET", "POST"])
 @login_required
