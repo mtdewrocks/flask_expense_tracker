@@ -3,7 +3,7 @@ from datetime import datetime, timedelta
 
 from flask import (
     Flask, render_template_string, request,
-    redirect, url_for
+    redirect, url_for, render_template
 )
 from flask_login import (
     LoginManager, login_user, login_required,
