@@ -191,45 +191,7 @@ DEFAULT_CATEGORIES = [
 #  LOGIN TEMPLATE
 # ============================================================
 
-LOGIN_TEMPLATE = """
-<!doctype html>
-<html>
-<head>
-  <meta charset="utf-8">
-  <title>Login</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <style>
-    body { font-family: system-ui; background:#f5f5f5; display:flex; align-items:center;
-           justify-content:center; height:100vh; margin:0; }
-    .box { background:#fff; padding:20px; border-radius:8px;
-           box-shadow:0 1px 3px rgba(0,0,0,0.1); width:100%; max-width:320px; }
-    h2 { margin-top:0; text-align:center; }
-    label { font-size:14px; display:block; margin-bottom:4px; }
-    input { width:100%; padding:8px; margin-bottom:10px; border-radius:4px;
-            border:1px solid #ccc; box-sizing:border-box; }
-    button { width:100%; padding:8px; border:none; border-radius:4px;
-             background:#007bff; color:white; font-size:14px; cursor:pointer; }
-    button:hover { background:#0056b3; }
-    .error { color:#d9534f; font-size:13px; margin-bottom:8px; text-align:center; }
-  </style>
-</head>
-<body>
-  <div class="box">
-    <h2>Login</h2>
-    {% if error %}
-    <div class="error">{{ error }}</div>
-    {% endif %}
-    <form method="post">
-      <label>Username</label>
-      <input name="username" autofocus>
-      <label>Password</label>
-      <input name="password" type="password">
-      <button type="submit">Login</button>
-    </form>
-  </div>
-</body>
-</html>
-"""
+
 
 # ============================================================
 #  ADMIN CREATE USER TEMPLATE
@@ -281,155 +243,6 @@ ADMIN_CREATE_USER_TEMPLATE = """
 #  MAIN EXPENSE PAGE TEMPLATE
 # ============================================================
 
-TEMPLATE = """
-<!doctype html>
-<html>
-<head>
-  <meta charset="utf-8">
-  <title>Expense Tracker</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <style>
-    body { font-family: system-ui; background:#f5f5f5; margin:0; padding:0; }
-    .container { max-width:900px; margin:auto; padding:16px; }
-    h1 { text-align:center; margin-bottom:16px; }
-    form { background:#fff; padding:12px; border-radius:8px; margin-bottom:16px;
-           box-shadow:0 1px 3px rgba(0,0,0,0.1); }
-    .field-group { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:8px; }
-    .field { flex:1 1 120px; min-width:120px; }
-    label { font-size:14px; display:block; margin-bottom:2px; }
-    input, select { width:100%; padding:8px; border-radius:4px; border:1px solid #ccc; }
-    button { background:#007bff; color:white; border:none; padding:8px 16px;
-             border-radius:4px; cursor:pointer; }
-    button:hover { background:#0056b3; }
-    table { width:100%; border-collapse:collapse; background:#fff;
-            box-shadow:0 1px 3px rgba(0,0,0,0.1); }
-    th, td { padding:8px; border-bottom:1px solid #eee; }
-    th { background:#f0f0f0; }
-    .amount { text-align:right; }
-    .icon-btn { background:none; border:none; cursor:pointer; padding:0 6px; font-size:16px; }
-    .delete-btn { color:#d9534f; }
-    .edit-btn { color:#0275d8; }
-    .summary { background:#fff; padding:12px; border-radius:8px; margin-bottom:16px; }
-    .summary-grid { display:flex; flex-wrap:wrap; gap:8px; }
-    .summary-item { flex:1 1 120px; background:#f8f9fa; padding:8px; border-radius:4px; }
-    .top-bar { display:flex; justify-content:space-between; margin-bottom:8px; }
-    .nav-links a { margin-left:12px; text-decoration:none; color:#007bff; }
-  </style>
-</head>
-<body>
-  <div class="container">
-
-    <div class="top-bar">
-      <div>
-        Logged in as <strong>{{ current_user.username }}</strong>
-        {% if current_user.is_admin %}
-          <span style="color:#28a745;">(admin)</span>
-          &middot; <a href="{{ url_for('admin_create_user') }}">Create user</a>
-        {% endif %}
-      </div>
-      <div class="nav-links">
-        <a href="/">Expenses</a>
-        <a href="/budgets">Budgets</a>
-        <a href="/dashboard/">Dashboard</a>
-        <a href="/logout">Logout</a>
-      </div>
-    </div>
-
-    <h1>Expense Tracker</h1>
-
-    <form method="post" action="{{ url_for('add_expense') }}">
-      <div class="field-group">
-        <div class="field">
-          <label>Amount</label>
-          <input type="number" step="0.01" name="amount" required>
-        </div>
-        <div class="field">
-          <label>Category</label>
-          <select name="category" required>
-            {% for cat in categories %}
-            <option value="{{ cat }}">{{ cat }}</option>
-            {% endfor %}
-          </select>
-        </div>
-        <div class="field">
-          <label>Description</label>
-          <input type="text" name="description">
-        </div>
-      </div>
-      <button type="submit">Add Expense</button>
-    </form>
-
-    <div class="summary">
-      <h2>Summary (last 30 days)</h2>
-      <div class="summary-grid">
-        <div class="summary-item">
-          <strong>Total Spent</strong>
-          ${{ "%.2f"|format(total_spent) }}
-        </div>
-        {% for cat, amt in category_totals.items() %}
-        <div class="summary-item">
-          <strong>{{ cat }}</strong>
-          ${{ "%.2f"|format(amt) }}
-        </div>
-        {% endfor %}
-      </div>
-    </div>
-
-    <table>
-      <thead>
-        <tr>
-          <th>Date</th>
-          <th>Category</th>
-          <th>Description</th>
-          <th class="amount">Amount</th>
-          <th>Actions</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for e in expenses %}
-        {% if editing_id == e.id %}
-        <tr>
-          <form method="post" action="{{ url_for('edit_expense', expense_id=e.id) }}">
-            <td>{{ e.created_at.strftime("%Y-%m-%d %H:%M") }}</td>
-            <td>
-              <select name="category">
-                {% for cat in categories %}
-                <option value="{{ cat }}" {% if cat == e.category %}selected{% endif %}>{{ cat }}</option>
-                {% endfor %}
-              </select>
-            </td>
-            <td><input type="text" name="description" value="{{ e.description }}"></td>
-            <td><input type="number" step="0.01" name="amount" value="{{ e.amount }}"></td>
-            <td>
-              <button class="icon-btn edit-btn">Save</button>
-              <a href="/" class="icon-btn">Cancel</a>
-            </td>
-          </form>
-        </tr>
-        {% else %}
-        <tr>
-          <td>{{ e.created_at.strftime("%Y-%m-%d %H:%M") }}</td>
-          <td>{{ e.category }}</td>
-          <td>{{ e.description }}</td>
-          <td class="amount">${{ "%.2f"|format(e.amount) }}</td>
-          <td>
-            <form method="post" action="{{ url_for('start_edit_expense', expense_id=e.id) }}" style="display:inline;">
-              <button class="icon-btn edit-btn">&#9998;</button>
-            </form>
-            <form method="post" action="{{ url_for('delete_expense', expense_id=e.id) }}" style="display:inline;">
-              <button class="icon-btn delete-btn">&times;</button>
-            </form>
-          </td>
-        </tr>
-        {% endif %}
-        {% endfor %}
-      </tbody>
-    </table>
-
-  </div>
-</body>
-</html>
-"""
 
 # ============================================================
 #  BUDGET PAGE TEMPLATE
@@ -787,7 +600,7 @@ def login():
         finally:
             session.close()
 
-    return render_template_string(LOGIN_TEMPLATE, error=None)
+    return render_template("login.html", error=None)
 
 
 @app.route("/logout")
@@ -827,8 +640,7 @@ def index():
 
     editing_id = request.args.get("editing_id", type=int)
 
-    return render_template_string(
-        TEMPLATE,
+    return render_template("expenses.html",
         expenses=expenses,
         categories=DEFAULT_CATEGORIES,
         total_spent=total_spent,
