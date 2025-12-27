@@ -1102,7 +1102,7 @@ def view_balances():
 
     session.close()
 
-    return render_template("balance.html", balances=balances)
+    return render_template("balances.html", balances=balances)
 # ============================================================
 #  ADMIN: CREATE INITIAL ADMIN USER
 # ============================================================
